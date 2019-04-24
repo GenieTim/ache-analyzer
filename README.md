@@ -17,10 +17,10 @@ It may look like this (replace the ... with your own keys):
     },
     "fitBit": {
         "clientID": "...",
-        "clienSecret": "...",
-        "callbackURL": "https://example.com/headache-pca/login-callback",
+        "clientSecret": "...",
+        "callbackURI": "https://example.com/headache-pca/login-callback",
         "callbackSecret": 123456789,
-        "autorizationURI": "https://www.fitbit.com/oauth2/authorize",
+        "authorizationURI": "https://www.fitbit.com/oauth2/authorize",
         "refreshTokenURI": "https://api.fitbit.com/oauth2/token"
     }
 }

@@ -14,10 +14,13 @@ classdef DarkSkyAPIClient
             %   Detailed explanation goes here
             % read configuration
             configFile = fileread('config.json');
-            obj.config = jsondecode(configFile).darkSky;
+            obj.config = jsondecode(configFile);
+            obj.config = obj.config.darkSky;
             % warmup cache
             obj.weatherDataCacheName = 'weatherData.xlsx';
-            obj.weatherDataCache = readtable(obj.weatherDataCacheName);
+            if (isfile(obj.weatherDataCacheName))
+                obj.weatherDataCache = readtable(obj.weatherDataCacheName);
+            end
             if (isempty(obj.weatherDataCache))
                 obj.weatherDataCache = cell2table(cell(0,4), 'VariableNames', {'long', 'lat', 'time', 'weather'});
             end
@@ -40,6 +43,9 @@ classdef DarkSkyAPIClient
         %FINDROW find the row in the weather data where longitude etc. match
             if (~isdatetime(time))
                 warning("Parameter time is required to be MATLABs datetime");
+            end
+            if (isempty(obj.weatherDataCache))
+                weather = []; return;
             end
             matchingLong = obj.weatherDataCache(obj.weatherDataCaache.long == long,:);
             matchingLat = matchingLong(matchingLong.lat == lat,:);
