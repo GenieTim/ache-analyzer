@@ -17,7 +17,8 @@ classdef FitbitAPIClient
             configFile = fileread('config.json');
             obj.config = jsondecode(configFile).fitbit;
             params = {
-                'https://my-matlab-redirect.example'
+                obj.config.callbackURI
+                obj.config.callbackSecret
                 obj.config.clientId
                 obj.config.clientSecret
                 obj.config.scopes

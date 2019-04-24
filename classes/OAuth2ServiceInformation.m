@@ -4,6 +4,7 @@ classdef OAuth2ServiceInformation
     
     properties
         redirectURI
+        redirectCode
         authorizationURI
         refreshTokenURI
         client_id
@@ -14,9 +15,10 @@ classdef OAuth2ServiceInformation
     end
     
     methods
-        function obj = OAuth2ServiceInformation(redirectURI, client_id, client_secret, scopes, tokenMaxAge)
+        function obj = OAuth2ServiceInformation(redirectURI, redirectCode, client_id, client_secret, scopes, tokenMaxAge)
             %OAUTH2SERVICEINFORMATION Construct an instance of this class
             %   Detailed explanation goes here
+            obj.redirectCode = redirectCode;
             obj.redirectURI = redirectURI;
             obj.client_id = client_id;
             obj.client_secret = client_secret;
