@@ -12,7 +12,7 @@ classdef FitbitAPIClient
     methods
         function obj = FitbitAPIClient()
             %FITBITAPICLIENT Construct an instance of this class
-            %   Detailed explanation goes here
+            %   Use FitbitAPIClient for communication with FitBit API
             % read configuration
             configFile = fileread('config.json');
             obj.config = jsondecode(configFile);
@@ -28,6 +28,7 @@ classdef FitbitAPIClient
                 obj.config.scopes
                 'token' % we choose implicit code grant flow
             };
+            % https://dev.fitbit.com/build/reference/web-api/oauth2/
             oauthService = OAuth2ServiceInformation(params{:});
             % construct the oauth client, config dependent
             if (isfield(obj.config, 'accessToken') || isprop(obj.config, 'accessToken'))

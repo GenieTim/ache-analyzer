@@ -47,12 +47,12 @@ classdef DarkSkyAPIClient
             if (isempty(obj.weatherDataCache))
                 weather = []; return;
             end
-            matchingLong = obj.weatherDataCache(obj.weatherDataCaache.long == long,:);
+            matchingLong = obj.weatherDataCache(obj.weatherDataCache.long == long,:);
             matchingLat = matchingLong(matchingLong.lat == lat,:);
-            weather = matchingLat(matchingLat.time == time,:);
+            weather = matchingLat(matchingLat.time == string(time, 'yyyy-MM-dd'),:);
         end
 
-        function [] = saveWeatherLocally(obj, long, lat, time, weather)
+        function [] = saveWeatherLocally(obj, long, lat, weather, time)
         %SAVEWEATHERLOCALLY save the wether from the API into a local xlsx file to
         %reduce number of calls to API
             if (~isdatetime(time))
@@ -67,10 +67,10 @@ classdef DarkSkyAPIClient
             if (~isdatetime(time))
                 warning("Parameter time is required to be MATLABs datetime");
             end
-            url = sprintf(obj.config.apiURL, obj.config.apiSecret, lat, long, time);
+            url = sprintf(obj.config.apiURL, obj.config.apiSecret, lat, long, int64(posixtime(time)));
             weather = webread(url);
             % cache result
-            saveWeatherLocally(long, lat, time, weather);
+            obj.saveWeatherLocally(long, lat, weather, time);
         end
     end
 end
