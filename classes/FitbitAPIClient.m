@@ -31,7 +31,7 @@ classdef FitbitAPIClient < DataProviderInterface
             % https://dev.fitbit.com/build/reference/web-api/oauth2/
             oauthService = OAuth2ServiceInformation(params{:});
             % construct the oauth client, config dependent
-            if (isfield(obj.config, 'accessToken') || isprop(obj.config, 'accessToken'))
+            if (propAvailable(obj.config, 'accessToken'))
                 obj.oauthclient = OAuth2Client(oauthService, 'Bearer', obj.config.accessToken);                
             else
                 obj.oauthclient = OAuth2Client(oauthService);

@@ -63,9 +63,9 @@ classdef DarkSkyAPIClient < DataProviderInterface
             data = cell(1,numel(dateSequence));
             for i = 1:numel(dateSequence)
                 newData = obj.loadWeather(obj.long, obj.lat, dateSequence(i));
-                if (isprop(newData, 'daily') || isfield(newData, 'daily'))
+                if (propAvailable(newData, 'daily'))
                     data{i} = newData.daily.data;
-                elseif (isprop(newData, 'currently') || isfield(newData, 'currently'))
+                elseif (propAvailable(newData, 'currently'))
                     data{i} = newData.currently.data;
                 else
                     warning('Failed to interpret weather data at %d, %d for %s.', obj.long, obj.lat, string(dateSequence(i), 'dd.MM.yyyy HH:mm'));
