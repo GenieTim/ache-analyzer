@@ -13,7 +13,12 @@ classdef Analyzer
             %ANALYZER Construct an instance of this class
             %   Objective data set is loaded from headacheData.xlsx
             % load objective
-            obj.objectiveDataSet = readtable('headacheData.xlsx');
+            objectiveDataSet = readtable('headacheData.xlsx');
+            if (~ismember('time', objectiveDataSet.Properties.VariableNames))
+                error("headacheData.xlsx needs a column titled 'time'.");
+            end
+            objectiveDataSet.time = datetime(objectiveDataSet.time);
+            obj.objectiveDataSet = sortrows(objectiveDataSet, 'time');
             
             % use passed variables
             for i = 1:nargin
@@ -21,14 +26,32 @@ classdef Analyzer
             end
         end
         
+        function obj = addDataByDataProvider(obj, provider)
+            %ADDDATAPROVIDER add a DataProviderInterface provider from
+            %which to take data
+            if (~isa(provider, 'DataProviderInterface'))
+                error('Provider has to implement DataProviderInterface');
+            end
+            
+            from = makeDateMidday(obj.objectiveDataSet.time(1));
+            to =  makeDateMidday(obj.objectiveDataSet.time(end));
+            obj = obj.addDataSet(provider.getDailyData(from, to));
+            provider.flushCache();
+        end
+        
         function obj = addDataSet(obj,dataSet)
             %ADDDATASET Add a collection of data to be analysed
             %   dataSet shall be table I guess
             if (~istable(dataSet))
                 warning("Dataset passed is not a table. Discarding...");
-            else
-                obj.dataSets{end} = dataSet;                
+                return;
             end
+            if (~ismember('time', dataSet.Properties.VariableNames))
+                warning("Dataset does not have property 'time'. Discarding...");
+                return;
+            end
+            % TODO: prefix table variable names
+           obj.dataSets{end} = dataSet;       
         end
         
         function [loadings,scores,vexpZ,tsquared,vexpX,mu] = runPrincipalComponentAnalysis(obj)

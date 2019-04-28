@@ -1,4 +1,4 @@
-classdef OAuth2Client
+classdef OAuth2Client < handle
     %OAUTH2CLIENT Generic OAuth2 Client to retrieve an authentication token
     %   Use class OAuth2ServiceInformation to pass the corresponding
     %   configurations
@@ -31,7 +31,7 @@ classdef OAuth2Client
             end
         end
         
-        function [accessToken, obj] = getAccessToken(obj)
+        function accessToken = getAccessToken(obj)
             %GETACCESSTOKEN Get the access token to be used by simple
             %requests
             

@@ -1,4 +1,4 @@
-classdef FitbitAPIClient
+classdef FitbitAPIClient < DataProviderInterface
     %FITBITAPICLIENT API client for the FitBit Fitness API
     %   Client to get data on fitness
     
@@ -47,31 +47,85 @@ classdef FitbitAPIClient
         end
         
         function fitness = loadFitnessActivitySummary(obj, time)
+            type = 'activity';
             if (~isdatetime(time))
                 warning("Parameter time is required to be MATLABs datetime");
             end
-            fitness = obj.loadFitnessLocally(time, 'activity');
+            fitness = obj.loadFitnessLocally(time, type);
             if (numel(fitness) == 0)
                 fitness = obj.makeRequest(sprintf("https://api.fitbit.com/1/user/-/activities/date/%s.json", string(time, 'yyyy-MM-dd')));
                 if (~isempty(fitness))
-                    obj.saveFitnessLocally('activity', time, fitness);
+                    % do not forget to save cache result in the end like so:
+                    % obj.flushCache(); 
+                    obj.fitnessDataCache = [obj.fitnessDataCache; {time, type, jsonencode(fitness)}];
                 end
             end
-            fitness = jsondecode(fitness);
+            % move interesting data to toplevel, we can only process 1
+            % level deep struct data
+            fitness = fitness.summary;
+            fitness.distances = fitness.distances.total;
         end
 
-        function fitness = loadHeartrate(obj, time) 
+        function heartrate = loadHeartrate(obj, time) 
+            type = 'heartrate';
             if (~isdatetime(time))
                 warning("Parameter time is required to be MATLABs datetime");
             end
-            fitness = obj.loadFitnessLocally(time, 'heartrate');
-            if (numel(fitness) == 0)
-                fitness = obj.makeRequest(sprintf("https://api.fitbit.com/1/user/-/activities/heart/date/%s/1d/1min.json", string(time, 'yyyy-MM-dd')));
-                obj.saveFitnessLocally('heartrate', time, fitness)
+            heartrate = obj.loadFitnessLocally(time, type);
+            if (numel(heartrate) == 0)
+                heartrate = obj.makeRequest(sprintf("https://api.fitbit.com/1/user/-/activities/heart/date/%s/1d/1min.json", string(time, 'yyyy-MM-dd')));                
+                if (~isempty(heartrate))
+                    obj.fitnessDataCache = [obj.fitnessDataCache; {time, type, jsonencode(heartrate)}];
+                    % do not forget to save cache result in the end like so:
+                    % obj.flushCache();
+                end
             end
-            fitness = jsondecode(fitness);
+            % move interesting data to toplevel, we can only process 1
+            % level deep struct data
+            allHeartRates = zeros(1, numel(heartrate.("activities-heart-intraday").dataset));
+            for i = 1:numel(allHeartRates)
+                allHeartRates(i) = heartrate.("activities-heart-intraday").dataset(i).value;
+            end
+            % ok, actually, we do a whole new struct
+            newHeartRate = struct;
+            newHeartRate.maxHeartRate = max(allHeartRates);
+            newHeartRate.minHeartRate = min(allHeartRates);
+            newHeartRate.meanHeartRate = mean(allHeartRates);
+            newHeartRate.medianHeartRate = median(allHeartRates);
+            heartrate = newHeartRate;
         end
 
+        function [] = flushCache(obj)
+        %SAVEFITNESSLOCALLY save the wether from the api into a local xlsx file to
+        %reduce number of calls
+            writetable(obj.fitnessDataCache, obj.fitnessDataCacheName);
+        end
+
+        function data = getDailyData(obj, from, to)
+        %GETDAILYDATA returns a table with all the data for datetime days
+        %between from and to.
+            if (from > to)
+                error("Invalid inputs. Can only serve data from datetime, only if datetime from < to.");
+            end
+            dateSequence = from:to;
+            % TODO: enhance software design , do not do everything explicit
+            % for all the possible data
+            heartRateData = cell(1,numel(dateSequence));
+            activityData = cell(1,numel(dateSequence));
+            for i = 1:numel(dateSequence)
+                heartRateData{i} = obj.loadHeartrate(dateSequence(i));
+                heartRateData{i}.time = dateSequence(i);
+                activityData{i} = obj.loadFitnessActivitySummary(dateSequence(i));
+                activityData{i}.time = dateSequence(i);
+            end
+            heartRateData = struct2table(heartRateData);
+            activityData = struct2table(activityData);
+            data = join(heartRateData, activityData);
+        end
+        
+    end
+    
+    methods (Access=protected)
         function [fitness] = loadFitnessLocally(obj, time, type)
         %FINDROW find the row in the fitness data where longitude etc. match
             if (~isdatetime(time))
@@ -81,17 +135,8 @@ classdef FitbitAPIClient
                 fitness = []; return;
             end
             matchingType = obj.fitnessDataCache(obj.fitnessDataCache.type == type, :);
-            fitness = matchingType(matchingType.time == string(time, 'yyyy-MM-dd'),:);
-        end
-
-        function [obj] = saveFitnessLocally(obj, type, time, data)
-        %SAVEFITNESSLOCALLY save the wether from the api into a local xlsx file to
-        %reduce number of calls
-            if (~isdatetime(time))
-                warning("Parameter time is required to be MATLABs datetime");
-            end
-            obj.fitnessDataCache = [obj.fitnessDataCache; {type, time, data}];
-            writetable(obj.fitnessDataCache, 'fitnessData.xlsx');
+            fitness = matchingType(matchingType.time == time,:);
+            fitness = jsondecode(fitness);
         end
 
         function [data] = makeRequest(obj, url)

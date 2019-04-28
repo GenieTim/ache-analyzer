@@ -1,4 +1,4 @@
-classdef DarkSkyAPIClient
+classdef DarkSkyAPIClient < DataProviderInterface
     %DARKSKYAPICLIENT API client for the dark sky weather API
     %   Client to get data on weather
     
@@ -6,12 +6,18 @@ classdef DarkSkyAPIClient
         config % configuration for the API
         weatherDataCache % cache 
         weatherDataCacheName % cache file name
+        long % longitude of position for which to load data
+        lat % latitude of position for which to load data
     end
     
     methods
-        function obj = DarkSkyAPIClient()
+        function obj = DarkSkyAPIClient(long, lat)
             %DARKSKYAPICLIENT Construct an instance of this class
             %   Detailed explanation goes here
+            if (nargin == 2)
+                obj.long = long;
+                obj.lat = lat;
+            end
             % read configuration
             configFile = fileread('config.json');
             obj.config = jsondecode(configFile);
@@ -36,9 +42,41 @@ classdef DarkSkyAPIClient
             if (numel(weather) == 0)
                 weather = obj.loadWeatherOnline(long, lat, time);
             end
-            weather = jsondecode(weather);
+            if (isstring(weather))
+                weather = jsondecode(weather);
+            end
         end
 
+        function [] = flushCache(obj)
+        %FLUSHCACHE save the wether from the API into a local xlsx file to
+        %reduce number of calls to API
+            writetable(obj.weatherDataCache, obj.weatherDataCacheName);
+        end
+        
+        function data = getDailyData(obj, from, to)
+        %GETDAILYDATA returns a table with all the data for datetime days
+        %between from and to.           
+            if (from > to)
+                error("Invalid inputs. Can only serve data from datetime, only if datetime from < to.");
+            end
+            dateSequence = from:to;
+            data = cell(1,numel(dateSequence));
+            for i = 1:numel(dateSequence)
+                newData = obj.loadWeather(obj.long, obj.lat, dateSequence(i));
+                if (isprop(newData, 'daily') || isfield(newData, 'daily'))
+                    data{i} = newData.daily.data;
+                elseif (isprop(newData, 'currently') || isfield(newData, 'currently'))
+                    data{i} = newData.currently.data;
+                else
+                    warning('Failed to interpret weather data at %d, %d for %s.', obj.long, obj.lat, string(dateSequence(i), 'dd.MM.yyyy HH:mm'));
+                end
+                data{i}.time = dateSequence(i);
+            end
+            data = struct2table(data);
+        end
+    end
+
+    methods (Access=protected)
         function [weather] = loadWeatherLocally(obj, long, lat, time)
         %FINDROW find the row in the weather data where longitude etc. match
             if (~isdatetime(time))
@@ -49,17 +87,7 @@ classdef DarkSkyAPIClient
             end
             matchingLong = obj.weatherDataCache(obj.weatherDataCache.long == long,:);
             matchingLat = matchingLong(matchingLong.lat == lat,:);
-            weather = matchingLat(matchingLat.time == string(time, 'yyyy-MM-dd'),:);
-        end
-
-        function [] = saveWeatherLocally(obj, long, lat, weather, time)
-        %SAVEWEATHERLOCALLY save the wether from the API into a local xlsx file to
-        %reduce number of calls to API
-            if (~isdatetime(time))
-                warning("Parameter time is required to be MATLABs datetime");
-            end
-            weatherData = [obj.weatherDataCache; {long, lat, time, weather}];
-            writetable(weatherData, obj.weatherDataCacheName);
+            weather = matchingLat(matchingLat.time == time,:);
         end
 
         function [weather] = loadWeatherOnline(obj, long, lat, time)
@@ -69,8 +97,9 @@ classdef DarkSkyAPIClient
             end
             url = sprintf(obj.config.apiURL, obj.config.apiSecret, lat, long, int64(posixtime(time)));
             weather = webread(url);
-            % cache result
-            obj.saveWeatherLocally(long, lat, weather, time);
+            obj.weatherDataCache = [obj.weatherDataCache; {long, lat, time, jsonencode(weather)}];
+            % do not forget to save cache result in the end like so:
+            % obj.flushCache();
         end
     end
 end
