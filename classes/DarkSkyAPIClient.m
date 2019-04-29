@@ -72,7 +72,7 @@ classdef DarkSkyAPIClient < DataProviderInterface
                 end
                 data{i}.time = dateSequence(i);
             end
-            data = struct2table(data);
+            data = cellStructArrayToTable(data);
         end
     end
 
@@ -96,7 +96,14 @@ classdef DarkSkyAPIClient < DataProviderInterface
                 warning("Parameter time is required to be MATLABs datetime");
             end
             url = sprintf(obj.config.apiURL, obj.config.apiSecret, lat, long, int64(posixtime(time)));
-            weather = webread(url);
+            try
+                weather = webread(url);
+            catch exception
+                % save what we have before giving up on HTTP errors 
+                % (e.g. API contingent used up)
+                obj.flushCache();
+                rethrow(exception);
+            end
             obj.weatherDataCache = [obj.weatherDataCache; {long, lat, time, jsonencode(weather)}];
             % do not forget to save cache result in the end like so:
             % obj.flushCache();

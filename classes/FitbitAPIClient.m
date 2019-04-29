@@ -118,8 +118,8 @@ classdef FitbitAPIClient < DataProviderInterface
                 activityData{i} = obj.loadFitnessActivitySummary(dateSequence(i));
                 activityData{i}.time = dateSequence(i);
             end
-            heartRateData = struct2table(heartRateData);
-            activityData = struct2table(activityData);
+            heartRateData = cellStructArrayToTable(heartRateData);
+            activityData = cellStructArrayToTable(activityData);
             data = join(heartRateData, activityData);
         end
         
@@ -140,8 +140,14 @@ classdef FitbitAPIClient < DataProviderInterface
         end
 
         function [data] = makeRequest(obj, url)
-        %MAKEGETREQUEST Make a GET HTTP request to the specified url            
-            data = obj.oauthclient.makeGetRequest(url);
+        %MAKEGETREQUEST Make a GET HTTP request to the specified url
+            % try. if we fail, we save what we have before crashing
+            try
+                data = obj.oauthclient.makeGetRequest(url);
+            catch exception
+                obj.flushCache();
+                rethrow(exception);
+            end
         end
 
     end
