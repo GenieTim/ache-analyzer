@@ -88,6 +88,14 @@ classdef DarkSkyAPIClient < DataProviderInterface
             matchingLong = obj.weatherDataCache(obj.weatherDataCache.long == long,:);
             matchingLat = matchingLong(matchingLong.lat == lat,:);
             weather = matchingLat(matchingLat.time == time,:);
+            if (numel(weather) > 0)
+                % access the table property, we do not need to return time,
+                % long, lat etc.
+                weather = weather.weather;
+            end
+            if (iscell(weather))
+                weather = jsondecode(string(weather));
+            end
         end
 
         function [weather] = loadWeatherOnline(obj, long, lat, time)
