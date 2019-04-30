@@ -13,6 +13,7 @@ function [t] = cellStructArrayToTable(cellArrayOfStruct)
         end
         fields = [fields, fieldnames(cellArrayOfStruct{i})'];
     end
+    fields = unique(fields);
     % set all the fields on each struct if not already set
     % this might be a bad idea, but the only option to convert to table
     % where all fields are needed
@@ -22,6 +23,8 @@ function [t] = cellStructArrayToTable(cellArrayOfStruct)
                 cellArrayOfStruct{i}.(fields{j}) = NaN;
             end
         end
+        % sort because cell2mat line 63
+        cellArrayOfStruct{i} = orderfields(cellArrayOfStruct{i});
     end
     % finally, convert
     m = cell2mat(cellArrayOfStruct);
