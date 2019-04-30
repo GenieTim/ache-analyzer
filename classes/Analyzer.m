@@ -19,6 +19,7 @@ classdef Analyzer
             end
             objectiveDataSet.time = datetime(objectiveDataSet.time);
             obj.objectiveDataSet = sortrows(objectiveDataSet, 'time');
+            obj.dataSets = {};
             
             % use passed variables
             for i = 1:nargin
@@ -51,7 +52,7 @@ classdef Analyzer
                 return;
             end
             % TODO: prefix table variable names
-           obj.dataSets{end} = dataSet;       
+           obj.dataSets{numel(obj.dataSets) + 1} = dataSet;       
         end
         
         function [loadings,scores,vexpZ,tsquared,vexpX,mu] = runPrincipalComponentAnalysis(obj)
