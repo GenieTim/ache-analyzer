@@ -7,12 +7,14 @@ classdef FitbitAPIClient < DataProviderInterface
         oauthclient % authentication util
         fitnessDataCache % cache 
         fitnessDataCacheName % cache file name
+        cacheDirty % flag to set if the cache has to be saved in the end
     end
     
     methods
         function obj = FitbitAPIClient()
             %FITBITAPICLIENT Construct an instance of this class
             %   Use FitbitAPIClient for communication with FitBit API
+            obj.cacheDirty = 0;
             % read configuration
             configFile = fileread('config.json');
             obj.config = jsondecode(configFile);
@@ -58,6 +60,7 @@ classdef FitbitAPIClient < DataProviderInterface
                     % do not forget to save cache result in the end like so:
                     % obj.flushCache(); 
                     obj.fitnessDataCache = [obj.fitnessDataCache; {time, type, jsonencode(fitness)}];
+                    obj.cacheDirty = 1;
                 end
             end
             % move interesting data to toplevel, we can only process 1
@@ -76,6 +79,7 @@ classdef FitbitAPIClient < DataProviderInterface
                 heartrate = obj.makeRequest(sprintf("https://api.fitbit.com/1/user/-/activities/heart/date/%s/1d/1min.json", string(time, 'yyyy-MM-dd')));                
                 if (~isempty(heartrate))
                     obj.fitnessDataCache = [obj.fitnessDataCache; {time, type, jsonencode(heartrate)}];
+                    obj.cacheDirty = 1;
                     % do not forget to save cache result in the end like so:
                     % obj.flushCache();
                 end
@@ -98,7 +102,9 @@ classdef FitbitAPIClient < DataProviderInterface
         function [] = flushCache(obj)
         %SAVEFITNESSLOCALLY save the wether from the api into a local xlsx file to
         %reduce number of calls
-            writetable(obj.fitnessDataCache, obj.fitnessDataCacheName);
+            if (obj.cacheDirty)
+                writetable(obj.fitnessDataCache, obj.fitnessDataCacheName);
+            end
         end
 
         function data = getDailyData(obj, from, to)
@@ -137,6 +143,9 @@ classdef FitbitAPIClient < DataProviderInterface
             matchingType = obj.fitnessDataCache(obj.fitnessDataCache.type == type, :);
             fitness = matchingType(matchingType.time == time,:);
             fitness = jsondecode(fitness);
+            if (iscell(fitness))
+                fitness = jsondecode(string(fitness));
+            end
         end
 
         function [data] = makeRequest(obj, url)

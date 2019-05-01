@@ -6,6 +6,7 @@ classdef DarkSkyAPIClient < DataProviderInterface
         config % configuration for the API
         weatherDataCache % cache 
         weatherDataCacheName % cache file name
+        cacheDirty % flag to set if the cache has to be saved in the end
         long % longitude of position for which to load data
         lat % latitude of position for which to load data
     end
@@ -18,6 +19,7 @@ classdef DarkSkyAPIClient < DataProviderInterface
                 obj.long = long;
                 obj.lat = lat;
             end
+            obj.cacheDirty = 0;
             % read configuration
             configFile = fileread('config.json');
             obj.config = jsondecode(configFile);
@@ -42,15 +44,14 @@ classdef DarkSkyAPIClient < DataProviderInterface
             if (numel(weather) == 0)
                 weather = obj.loadWeatherOnline(long, lat, time);
             end
-            if (isstring(weather))
-                weather = jsondecode(weather);
-            end
         end
 
         function [] = flushCache(obj)
         %FLUSHCACHE save the wether from the API into a local xlsx file to
         %reduce number of calls to API
-            writetable(obj.weatherDataCache, obj.weatherDataCacheName);
+            if (obj.cacheDirty)
+                writetable(obj.weatherDataCache, obj.weatherDataCacheName);
+            end
         end
         
         function data = getDailyData(obj, from, to)
@@ -113,6 +114,7 @@ classdef DarkSkyAPIClient < DataProviderInterface
                 rethrow(exception);
             end
             obj.weatherDataCache = [obj.weatherDataCache; {long, lat, time, jsonencode(weather)}];
+            obj.cacheDirty = 1;
             % do not forget to save cache result in the end like so:
             % obj.flushCache();
         end
