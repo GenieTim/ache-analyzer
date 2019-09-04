@@ -19,7 +19,6 @@ classdef OAuth2Client < handle
             %   implicit authentication flows
             obj.service_information = service_information;
             
-            
             if (nargin > 1)
                 obj.token_type = token_type;
             else 
@@ -117,10 +116,9 @@ classdef OAuth2Client < handle
         function [data] = makeGetRequest(obj, url)
             %MAKEGETREQUEST Make a GET HTTP request to the specified url,
             %authenticated.
-            % TODO: fix issues with MATLAB class type (handle vs. ...)
             accessToken = obj.getAccessToken();
             authorizationHeader = strcat(obj.token_type, " ", accessToken);
-            headerFields = {'Authorization', authorizationHeader{:}};
+            headerFields = [{'Authorization'}, authorizationHeader(:)'];
             options = weboptions('HeaderFields', headerFields, 'ContentType','json');
             data = webread(url, options);
         end

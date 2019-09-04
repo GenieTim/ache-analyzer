@@ -66,7 +66,9 @@ classdef FitbitAPIClient < DataProviderInterface
             % move interesting data to toplevel, we can only process 1
             % level deep struct data
             fitness = fitness.summary;
-            fitness.distances = fitness.distances.total;
+            distanceForActivity = [fitness.distances.distance];
+            fitness.distances = max(distanceForActivity); % max = total :P. 
+            % If looking for separate/per activity: check out fitness.distances.activity
         end
 
         function heartrate = loadHeartrate(obj, time) 
@@ -86,9 +88,9 @@ classdef FitbitAPIClient < DataProviderInterface
             end
             % move interesting data to toplevel, we can only process 1
             % level deep struct data
-            allHeartRates = zeros(1, numel(heartrate.("activities-heart-intraday").dataset));
+            allHeartRates = zeros(1, numel(heartrate.("activities_heart_intraday").dataset));
             for i = 1:numel(allHeartRates)
-                allHeartRates(i) = heartrate.("activities-heart-intraday").dataset(i).value;
+                allHeartRates(i) = heartrate.("activities_heart_intraday").dataset(i).value;
             end
             % ok, actually, we do a whole new struct
             newHeartRate = struct;
@@ -133,16 +135,23 @@ classdef FitbitAPIClient < DataProviderInterface
     
     methods (Access=protected)
         function [fitness] = loadFitnessLocally(obj, time, type)
-        %FINDROW find the row in the fitness data where longitude etc. match
+        %FINDROW find the row in the fitness data where datetime & type match
             if (~isdatetime(time))
                 warning("Parameter time is required to be MATLABs datetime");
             end
             if (isempty(obj.fitnessDataCache))
                 fitness = []; return;
             end
-            matchingType = obj.fitnessDataCache(obj.fitnessDataCache.type == type, :);
-            fitness = matchingType(matchingType.time == time,:);
-            fitness = jsondecode(fitness);
+            matchingType = obj.fitnessDataCache(ismember(obj.fitnessDataCache.type(:), type), :);
+            if (isempty(matchingType))
+                fitness = []; return;                
+            end
+            fitness = matchingType(ismember(matchingType.time, time),:);
+            if (isempty(fitness))
+                fitness = []; return; 
+            end
+            % access raw data. We do not yet haven an index for data -> 3
+            fitness = jsondecode(char(fitness{1,3}));
             if (iscell(fitness))
                 fitness = jsondecode(string(fitness));
             end
@@ -151,6 +160,7 @@ classdef FitbitAPIClient < DataProviderInterface
         function [data] = makeRequest(obj, url)
         %MAKEGETREQUEST Make a GET HTTP request to the specified url
             % try. if we fail, we save what we have before crashing
+            pause(1); % sleep to calm down fitbit API
             try
                 data = obj.oauthclient.makeGetRequest(url);
             catch exception
