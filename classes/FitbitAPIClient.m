@@ -39,7 +39,7 @@ classdef FitbitAPIClient < DataProviderInterface
                 obj.oauthclient = OAuth2Client(oauthService);
             end
             % warmup cache
-            obj.fitnessDataCacheName = 'fitnessData.xlsx';
+            obj.fitnessDataCacheName = 'fitnessData.csv'; % csv,  not xlsx, as xlsx has a char limit reached by these data
             if (isfile(obj.fitnessDataCacheName))
                 obj.fitnessDataCache = readtable(obj.fitnessDataCacheName);
             end
@@ -106,6 +106,7 @@ classdef FitbitAPIClient < DataProviderInterface
         %reduce number of calls
             if (obj.cacheDirty)
                 writetable(obj.fitnessDataCache, obj.fitnessDataCacheName);
+                obj.cacheDirty = 0;
             end
         end
 
@@ -146,7 +147,8 @@ classdef FitbitAPIClient < DataProviderInterface
             if (isempty(matchingType))
                 fitness = []; return;                
             end
-            fitness = matchingType(ismember(matchingType.time, time),:);
+            % let's not compare the time
+            fitness = matchingType(ismember(datestr(datenum(matchingType.time, 'dd.mm.yy'), 'dd/mm/yyyy'), string(datestr(time, 'dd/mm/yyyy'))), :);
             if (isempty(fitness))
                 fitness = []; return; 
             end
@@ -160,12 +162,16 @@ classdef FitbitAPIClient < DataProviderInterface
         function [data] = makeRequest(obj, url)
         %MAKEGETREQUEST Make a GET HTTP request to the specified url
             % try. if we fail, we save what we have before crashing
-            pause(1); % sleep to calm down fitbit API
+            pause(randi([0, 60], 1, 1)); % sleep to calm down fitbit API
             try
                 data = obj.oauthclient.makeGetRequest(url);
             catch exception
                 obj.flushCache();
                 rethrow(exception);
+            end
+            % we should save cache from time to time anyways
+            if (randi([0, 20], 1, 1) > 16)
+                obj.flushCache();                
             end
         end
 

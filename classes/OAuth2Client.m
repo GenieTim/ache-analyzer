@@ -68,7 +68,7 @@ classdef OAuth2Client < handle
              for i = 1:numel(requiredFields)
                  response.(requiredFields{i}) = input(strcat("Please enter the value of ", requiredFields{i}, " (strings in ''):"));
              end
-             obj.service_information.tokenMaxAge = response.expires_in / 60;
+             obj.service_information.tokenMaxAge = response.expires_in;
              obj.refresh_token = response.refresh_token;
              obj.access_token = response.access_token;
              obj.token_type = response.token_type;
@@ -109,7 +109,7 @@ classdef OAuth2Client < handle
             else
                 age = datetime() - obj.access_token_birth;
                 current = minutes(age) < obj.service_information.tokenMaxAge;
-                fprintf("Age %f, ergo %d\n", minutes(age), current);
+                %fprintf("Age %f, ergo %d\n", minutes(age), current);
             end
         end
         
@@ -119,7 +119,7 @@ classdef OAuth2Client < handle
             accessToken = obj.getAccessToken();
             authorizationHeader = strcat(obj.token_type, " ", accessToken);
             headerFields = [{'Authorization'}, authorizationHeader(:)'];
-            options = weboptions('HeaderFields', headerFields, 'ContentType','json');
+            options = weboptions('HeaderFields', headerFields, 'ContentType','json', 'Timeout', 60);
             data = webread(url, options);
         end
     end

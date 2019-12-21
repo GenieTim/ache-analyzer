@@ -6,16 +6,23 @@ classdef Analyzer
     properties
         dataSets
         objectiveDataSet
+        responseVariable
     end
     
     methods
         function obj = Analyzer(varargin)
             %ANALYZER Construct an instance of this class
             %   Objective data set is loaded from headacheData.xlsx
+            % pseudo-config:
+            inputFileName = 'headacheData.xlsx';
+            obj.responseVariable = 'dolor';
             % load objective
-            objectiveDataSet = readtable('headacheData.xlsx');
+            objectiveDataSet = readtable(inputFileName);
             if (~ismember('time', objectiveDataSet.Properties.VariableNames))
-                error("headacheData.xlsx needs a column titled 'time'.");
+                error(strcat(inputFileName, " needs a column titled 'time'."));
+            end
+            if (~ismember(obj.responseVariable, objectiveDataSet.Properties.VariableNames))
+                error(strcat(inputFileName, " needs a column titled '", obj.responseVariable, "'."));
             end
             objectiveDataSet.time = datetime(objectiveDataSet.time);
             obj.objectiveDataSet = sortrows(objectiveDataSet, 'time');
@@ -56,14 +63,34 @@ classdef Analyzer
         end
         
         function [loadings,scores,vexpZ,tsquared,vexpX,mu] = runPrincipalComponentAnalysis(obj)
-            %RUNPRINCIPALCOMPONENTANALYSIS Do analyse. Now.
-            dataTable = obj.objectiveDataSet;
-            for i = 1:numel(obj.dataSets)
-                dataTable = join(dataTable, obj.dataSets{i});
-            end
+            %RUNPRINCIPALCOMPONENTANALYSIS Do analysis using PCA
+            dataTable = obj.mergeTables();
             
-            [loadings,scores,vexpZ,tsquared,vexpX,mu] = pca(dataTable);
+            % TODO: filter non-numeric data first
+            [loadings,scores,vexpZ,tsquared,vexpX,mu] = pca(table2array(dataTable));
             biplot(loadings(:,1:3),'scores',scores(:,1:3),'varlabels',dataTable.Properties.VariableNames);
+        end
+        
+        function tree = runDecisionTree(obj)
+            %RUNDECISIONTREE Do analysis using decision tree 
+            dataTable = obj.mergeTables();
+            
+            tree = fitctree(dataTable, obj.responseVariable);
+            view(tree.Trained{1},'Mode','graph')
+        end
+        
+        function [merged] = mergeTables(obj)
+            %MERGETABLES merge/join all data sets together into one table
+            merged = obj.objectiveDataSet;
+            merged.dateStr = datestr(datenum(merged.time), 'dd/mm/yyyy');
+            for i = 1:numel(obj.dataSets)
+                setToAdd = obj.dataSets{i};
+                setToAdd.dateStr = datestr(datenum(setToAdd.time), 'dd/mm/yyyy');
+                merged = join(merged, setToAdd, 'Keys', 'dateStr');
+                %innerjoin(merged, obj.dataSets{i}, 'LeftKeys', 'time', 'RightKeys', 'time');
+            end
+            % set the 
+            merged.dolor(isnan(merged.dolor)) = 0;
         end
     end
 end

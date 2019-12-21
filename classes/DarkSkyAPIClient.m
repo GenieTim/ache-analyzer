@@ -51,6 +51,7 @@ classdef DarkSkyAPIClient < DataProviderInterface
         %reduce number of calls to API
             if (obj.cacheDirty)
                 writetable(obj.weatherDataCache, obj.weatherDataCacheName);
+                obj.cacheDirty = 0;
             end
         end
         

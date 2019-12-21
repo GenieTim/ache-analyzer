@@ -3,4 +3,9 @@ config.json
 headacheData.xlsx
 weatherData.xlsx
 fitnessData.xlsx
+fitnessData.csv
+headacheData-json.xlsx
+weatherData-json.xlsx
+fitnessData-json.xlsx
+fitnessData-json.csv
 
