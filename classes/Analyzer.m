@@ -2,6 +2,9 @@ classdef Analyzer
     %ANALYZER The Analyzer is the main class collecting data for analysis
     %   Use this class to dynamically add & remove datasets and finally
     %   retrieve the results
+    % Checkout
+    % https://www.mathworks.com/help/stats/dimensionality-reduction.html 
+    % for more ideas
     
     properties
         dataSets
@@ -73,8 +76,11 @@ classdef Analyzer
         
         function tree = runDecisionTree(obj)
             %RUNDECISIONTREE Do analysis using decision tree 
-            dataTable = obj.mergeTables();
-            
+            %TODO: refactor not to require this arbitrary nr. of
+            %re-simplifications
+            dataTable = simplifyTable(obj.mergeTables());
+            dataTable = simplifyTable(dataTable);
+            dataTable = simplifyTable(dataTable);
             tree = fitctree(dataTable, obj.responseVariable);
             view(tree.Trained{1},'Mode','graph')
         end
@@ -88,8 +94,10 @@ classdef Analyzer
                 setToAdd.dateStr = datestr(datenum(setToAdd.time), 'dd/mm/yyyy');
                 merged = join(merged, setToAdd, 'Keys', 'dateStr');
                 %innerjoin(merged, obj.dataSets{i}, 'LeftKeys', 'time', 'RightKeys', 'time');
-            end
-            % set the 
+            end            
+            % set the predictor variable where necessary
+            %indices = isnan(table2array(merged(:, obj.responseVariable)));
+            %merged(indices, obj.responseVariable) = zeros(1, sum(indices));
             merged.dolor(isnan(merged.dolor)) = 0;
         end
     end

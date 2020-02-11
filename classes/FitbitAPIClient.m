@@ -148,7 +148,13 @@ classdef FitbitAPIClient < DataProviderInterface
                 fitness = []; return;                
             end
             % let's not compare the time
-            fitness = matchingType(ismember(datestr(datenum(matchingType.time, 'dd.mm.yy'), 'dd/mm/yyyy'), string(datestr(time, 'dd/mm/yyyy'))), :);
+            % first, make sure we are dealing in the same format
+            if (isdatetime(matchingType.time))
+                dateNumArr = datenum(matchingType.time);
+            else
+                dateNumArr = datenum(matchingType.time, 'dd.mm.yy');
+            end
+            fitness = matchingType(ismember(datestr(dateNumArr, 'dd/mm/yyyy'), string(datestr(time, 'dd/mm/yyyy'))), :);
             if (isempty(fitness))
                 fitness = []; return; 
             end
