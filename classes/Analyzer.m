@@ -29,6 +29,7 @@ classdef Analyzer
             end
             objectiveDataSet.time = datetime(objectiveDataSet.time);
             obj.objectiveDataSet = sortrows(objectiveDataSet, 'time');
+            obj.fillObjectiveData();
             obj.dataSets = {};
             
             % use passed variables
@@ -38,6 +39,8 @@ classdef Analyzer
         end
         
         function obj = fillObjectiveData(obj)
+            %FILLOBJECTIVEDATA fill the objective data sequence with
+            %default values where necessary
             from = makeDateMidday(obj.objectiveDataSet.time(1));
             to =  makeDateMidday(obj.objectiveDataSet.time(end));
             dateSequence = from:to;
@@ -47,10 +50,24 @@ classdef Analyzer
                 if (isempty(matchDate))
                     newRow = struct();
                     newRow.time = time;
-                    newRow.dolor = 0;
+                    newRow.(obj.responseVariable) = 0;
+                    for name = obj.objectiveDataSet.Properties.VariableNames
+                        nameStr = string(name);
+                        if (~strcmp('time', nameStr) && ~strcmp(obj.responseVariable, nameStr))
+                            switch (class(obj.objectiveDataSet.(nameStr)))
+                                case 'double'
+                                    newRow.(nameStr) = 0.0;
+                                case {'string', 'cell'}
+                                    newRow.(nameStr) = "";
+                                otherwise
+                                    warning(strcat('Unhandled variable type ', class(obj.objectiveDataSet.(nameStr))));
+                            end
+                        end
+                    end
                     obj.objectiveDataSet = [obj.objectiveDataSet; struct2table(newRow)];
                 end
             end
+            obj.objectiveDataSet = sortrows(obj.objectiveDataSet, 'time');
         end
         
         function obj = addDataByDataProvider(obj, provider)
