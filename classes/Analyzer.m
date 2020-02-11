@@ -37,6 +37,22 @@ classdef Analyzer
             end
         end
         
+        function obj = fillObjectiveData(obj)
+            from = makeDateMidday(obj.objectiveDataSet.time(1));
+            to =  makeDateMidday(obj.objectiveDataSet.time(end));
+            dateSequence = from:to;
+            for i = 1:numel(dateSequence)
+                time = dateSequence(i);
+                matchDate = obj.objectiveDataSet(ismember(datestr(obj.objectiveDataSet.time, 'dd/mm/yyyy'), string(datestr(time, 'dd/mm/yyyy'))), :);
+                if (isempty(matchDate))
+                    newRow = struct();
+                    newRow.time = time;
+                    newRow.dolor = 0;
+                    obj.objectiveDataSet = [obj.objectiveDataSet; struct2table(newRow)];
+                end
+            end
+        end
+        
         function obj = addDataByDataProvider(obj, provider)
             %ADDDATAPROVIDER add a DataProviderInterface provider from
             %which to take data
@@ -82,7 +98,7 @@ classdef Analyzer
             dataTable = simplifyTable(dataTable);
             dataTable = simplifyTable(dataTable);
             tree = fitctree(dataTable, obj.responseVariable);
-            view(tree.Trained{1},'Mode','graph')
+            view(tree,'Mode','graph')
         end
         
         function [merged] = mergeTables(obj)

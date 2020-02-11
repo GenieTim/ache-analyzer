@@ -10,14 +10,15 @@ for example for the one provided by FitBit,
 whereas another language such as Phyton could have provided simple libraries. 
 
 Note that depending on your data structures this program may not always work. 
-Feel free to contribute to [functions/simplifyTable] to fix this issue.
+Feel free to contribute to [functions/simplifyTable](functions/simplifyTable) to fix this issue.
 
 ## Setup
 
 You are required to create a file "headacheData.xlsx" and a file "config.json" 
 (run setup.sh to let it do it for you).
 The headacheData shall be an Excel Table with one sheet, having at least the 
-two columns (with these titles) *Date* and *Strength*.
+two columns (with these titles) *time* (being the datetime) and *dolor* 
+(being the badness/strength of the ache).
 The config.json file may have different keys, depending on the data you want to analyse too.
 It may look like this (replace the ... with your own keys):
 
@@ -37,6 +38,9 @@ It may look like this (replace the ... with your own keys):
     }
 }
 ```
+
+Additionally, you may edit main.m to add/remove unused data provider or 
+desired analysi
 
 ## Usage
 
